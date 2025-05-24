@@ -1,4 +1,5 @@
 import os
+import sys
 import requests
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin
@@ -62,10 +63,18 @@ def delete_local_file(grand_prix, filename):
         return True
     return False
 
+def resource_path(filename):
+    # 支持 PyInstaller 打包后的路径
+    if hasattr(sys, '_MEIPASS'):
+        return os.path.join(sys._MEIPASS, filename)
+    return os.path.join(os.path.abspath("."), filename)
+
 def load_local_grand_prix(json_path='grand_prix_list.json'):
     try:
+        json_path = resource_path(json_path)
         with open(json_path, 'r', encoding='utf-8') as f:
             return json.load(f)
     except Exception as e:
         print("Failed to load Grand Prix list from JSON:", e)
         return {}
+    

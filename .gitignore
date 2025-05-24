@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+*.pyo
+*.spec
+*.log
+f1_documents/
+dist/
+build/
+*.exe
+.edgedriver_win64/

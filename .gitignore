@@ -7,4 +7,4 @@ f1_documents/
 dist/
 build/
 *.exe
-.edgedriver_win64/
+edgedriver_win64/

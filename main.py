@@ -10,8 +10,12 @@ from utils import (
     download_and_open,
     list_local_files,
     delete_local_file,
-    load_local_grand_prix
+    load_local_grand_prix,
+    get_gp_dir
 )
+import requests
+import mimetypes
+import webbrowser
 
 GRAND_PRIX_URLS = load_local_grand_prix()
 
@@ -32,12 +36,12 @@ def search_files():
         return
     docs = fetch_documents(url, keyword)
     if not docs:
-        tk.Label(result_inner, text="No matching files found.").pack()
+        ttk.Label(result_inner, text="No matching files found.").pack()
         return
     for name, link in docs:
         match = re.search(r'Published on(\d{2}\.\d{2}\.\d{2} \d{2}:\d{2})CET', name)
         if match:
-            cet_str = match.group(1)  # 例如 '24.05.25 17:25'
+            cet_str = match.group(1)
             try:
                 cet_dt = datetime.strptime(cet_str, '%y.%m.%d %H:%M')
                 beijing_dt = cet_dt + timedelta(hours=7)
@@ -49,9 +53,9 @@ def search_files():
         else:
             display_name = name.strip()
 
-        btn = tk.Button(result_inner, text=display_name,
-    command=lambda n=name, l=link, g=gp: threading.Thread(target=download_with_progress, args=(n, l, g)).start(),
-    anchor="w")
+        btn = ttk.Button(result_inner, text=display_name,
+                         command=lambda n=name, l=link, g=gp: threading.Thread(
+                             target=download_with_progress, args=(n, l, g)).start())
         btn.pack(fill='x', padx=5, pady=2)
 
 def show_local_files_window():
@@ -85,21 +89,15 @@ def show_local_files_window():
                 else:
                     messagebox.showerror("错误", "删除失败。")
 
-    btn_frame = tk.Frame(win)
+    btn_frame = ttk.Frame(win)
     btn_frame.pack(pady=5)
-    tk.Button(btn_frame, text="打开文件", command=open_selected).pack(side='left', padx=10)
-    tk.Button(btn_frame, text="删除文件", command=delete_selected).pack(side='left', padx=10)
+    ttk.Button(btn_frame, text="打开文件", command=open_selected).pack(side='left', padx=10)
+    ttk.Button(btn_frame, text="删除文件", command=delete_selected).pack(side='left', padx=10)
 
 def download_with_progress(name, url, grand_prix):
-    import mimetypes
-    import webbrowser
-    from utils import get_gp_dir
-    import requests
-
     gp_dir = get_gp_dir(grand_prix)
     response = requests.get(url, stream=True)
 
-    # 获取文件名
     content_disp = response.headers.get("Content-Disposition", "")
     if "filename=" in content_disp:
         name = content_disp.split("filename=")[-1].strip("\"'")
@@ -151,26 +149,33 @@ def download_with_progress(name, url, grand_prix):
 # =================== GUI 主体 ===================
 root = tk.Tk()
 root.title("F1 文件查询器")
-root.geometry("800x600")
+root.geometry("900x600")
+root.configure(bg="#f0f2f5")
 
-main_frame = tk.Frame(root)
-main_frame.pack(fill='both', expand=True)
+style = ttk.Style()
+style.theme_use("clam")
+style.configure("TButton", font=("Segoe UI", 10), padding=6)
+style.configure("TLabel", font=("Segoe UI", 10), background="#f0f2f5")
+style.configure("TFrame", background="#f0f2f5")
+style.configure("TEntry", padding=5)
 
-left_panel = tk.Frame(main_frame, width=200, padx=10, pady=10)
-left_panel.pack(side='left', fill='y')
+main_frame = ttk.Frame(root)
+main_frame.pack(fill='both', expand=True, padx=15, pady=15)
 
-tk.Label(left_panel, text="Grand Prix:").pack()
+left_panel = ttk.Frame(main_frame, width=240)
+left_panel.pack(side='left', fill='y', padx=(0, 20))
+
+ttk.Label(left_panel, text="Grand Prix:").pack(anchor='w')
 gp_var = tk.StringVar()
-gp_menu = ttk.Combobox(left_panel, textvariable=gp_var, values=list(GRAND_PRIX_URLS.keys()))
-gp_menu.pack()
+gp_menu = ttk.Combobox(left_panel, textvariable=gp_var, values=list(GRAND_PRIX_URLS.keys()), state="readonly")
+gp_menu.pack(fill='x')
 if GRAND_PRIX_URLS:
     gp_menu.current(0)
 
-tk.Label(left_panel, text="File filter keyword:").pack(pady=(10, 0))
-kw_entry = tk.Entry(left_panel)
-kw_entry.pack()
+ttk.Label(left_panel, text="关键词:").pack(anchor='w', pady=(10, 0))
+kw_entry = ttk.Entry(left_panel)
+kw_entry.pack(fill='x')
 
-# 快捷关键词按钮
 def set_keyword_and_search(keyword):
     kw_entry.delete(0, tk.END)
     kw_entry.insert(0, keyword)
@@ -182,27 +187,25 @@ quick_keywords = [
     ("传唤通知", "Summons")
 ]
 
-quick_frame = tk.Frame(left_panel)
-quick_frame.pack(pady=5)
-
+quick_frame = ttk.Frame(left_panel)
+quick_frame.pack(pady=10)
 for label, word in quick_keywords:
-    tk.Button(quick_frame, text=label, command=lambda w=word: set_keyword_and_search(w), width=12).pack(pady=2)
+    ttk.Button(quick_frame, text=label, command=lambda w=word: set_keyword_and_search(w), width=20).pack(pady=2)
 
-tk.Button(left_panel, text="Search", command=search_files).pack(pady=5)
-tk.Button(left_panel, text="打开下载文件夹", command=open_folder).pack(pady=5)
-tk.Button(left_panel, text="查看本地文件", command=show_local_files_window).pack(pady=5)
+ttk.Button(left_panel, text="搜索", command=search_files).pack(pady=5)
+ttk.Button(left_panel, text="打开下载文件夹", command=open_folder).pack(pady=5)
+ttk.Button(left_panel, text="查看本地文件", command=show_local_files_window).pack(pady=5)
 
-right_panel = tk.Frame(main_frame)
+right_panel = ttk.Frame(main_frame)
 right_panel.pack(side='left', fill='both', expand=True)
 
-canvas = tk.Canvas(right_panel)
-scrollbar = tk.Scrollbar(right_panel, orient="vertical", command=canvas.yview)
+canvas = tk.Canvas(right_panel, bg="white")
+scrollbar = ttk.Scrollbar(right_panel, orient="vertical", command=canvas.yview)
 canvas.configure(yscrollcommand=scrollbar.set)
-
 scrollbar.pack(side="right", fill="y")
 canvas.pack(side="left", fill="both", expand=True)
 
-result_inner = tk.Frame(canvas)
+result_inner = ttk.Frame(canvas)
 canvas.create_window((0, 0), window=result_inner, anchor='nw')
 
 def on_frame_configure(event):
@@ -212,11 +215,10 @@ result_inner.bind("<Configure>", on_frame_configure)
 
 progress = ttk.Progressbar(root, orient="horizontal", length=400, mode="determinate")
 progress.pack(pady=5)
-progress.pack_forget()  # 初始隐藏
+progress.pack_forget()
 progress_label_var = tk.StringVar()
-progress_label = tk.Label(root, textvariable=progress_label_var)
+progress_label = ttk.Label(root, textvariable=progress_label_var)
 progress_label.pack()
 progress_label_var.set("")
-
 
 root.mainloop()
